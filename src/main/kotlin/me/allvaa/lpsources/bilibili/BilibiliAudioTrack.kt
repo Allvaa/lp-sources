@@ -33,7 +33,7 @@ class BilibiliAudioTrack(audioTrackInfo: AudioTrackInfo, val bvid: String, val c
     }
 
     override fun makeShallowClone(): AudioTrack {
-        return BilibiliAudioTrack(trackInfo, bvid, cid, this.sourceManager)
+        return BilibiliAudioTrack(trackInfo, bvid, cid, sourceManager)
     }
 
     override fun getSourceManager(): AudioSourceManager {
