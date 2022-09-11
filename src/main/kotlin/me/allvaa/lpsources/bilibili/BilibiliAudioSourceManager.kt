@@ -111,7 +111,8 @@ class BilibiliAudioSourceManager : AudioSourceManager {
 
     companion object {
         private val URL_PATTERN = Regex("^https?:\\/\\/(?:(?:www|m)\\.)?bilibili\\.com\\/(?<type>video)\\/(?<bvid>[A-Za-z0-9]+)\\/?(?:(?:\\?p=(?<page>[\\d]+)(?:&.+)?)?|(?:\\?.*)?)\$").toPattern()
-        fun getVideoURL(id: String, page: Int? = null): String {
+
+        private fun getVideoURL(id: String, page: Int? = null): String {
             return "https://www.bilibili.com/video/$id${if (page != null) "?p=$page" else ""}"
         }
     }
