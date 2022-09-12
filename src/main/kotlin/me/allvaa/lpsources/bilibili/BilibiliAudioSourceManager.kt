@@ -12,7 +12,13 @@ import java.io.DataInput
 import java.io.DataOutput
 
 class BilibiliAudioSourceManager : AudioSourceManager {
-    val httpInterface: HttpInterface = HttpClientTools.createDefaultThreadLocalManager().`interface`
+    val httpInterface: HttpInterface
+
+    init {
+        val httpInterfacaManager = HttpClientTools.createDefaultThreadLocalManager()
+        httpInterfacaManager.setHttpContextFilter(BilibiliHttpContextFilter())
+        httpInterface = httpInterfacaManager.`interface`
+    }
 
     override fun getSourceName(): String {
         return "bilibili"
@@ -21,13 +27,12 @@ class BilibiliAudioSourceManager : AudioSourceManager {
     override fun loadItem(manager: AudioPlayerManager, reference: AudioReference): AudioItem? {
         val matcher = URL_PATTERN.matcher(reference.identifier)
         if (matcher.find()) {
-            val type = matcher.group("type")
-            val bvid = matcher.group("bvid")
-            val page = (matcher.group("page")?.toInt() ?: 1) - 1
-
-            when (type) {
+            when (matcher.group("type")) {
                 "video" -> {
-                    val response = httpInterface.execute(HttpGet("https://api.bilibili.com/x/web-interface/view?bvid=$bvid"))
+                    val bvid = matcher.group("id")
+                    val page = (matcher.group("page")?.toInt() ?: 1) - 1
+
+                    val response = httpInterface.execute(HttpGet("${BASE_URL}x/web-interface/view?bvid=$bvid"))
                     val responseJson = JsonBrowser.parse(response.entity.content)
 
                     val statusCode = responseJson.get("code").`as`(Int::class.java)
@@ -42,6 +47,27 @@ class BilibiliAudioSourceManager : AudioSourceManager {
                         loadVideo(trackData)
                     }
                 }
+                "audio" -> {
+                    val type = when (matcher.group("audioType")) {
+                        "am" -> "menu"
+                        "au" -> "song"
+                        else -> null
+                    }
+                    val sid = matcher.group("audioId")
+
+                    val response = httpInterface.execute(HttpGet("${BASE_URL}audio/music-service-c/web/$type/info?sid=$sid"))
+                    val responseJson = JsonBrowser.parse(response.entity.content)
+
+                    val statusCode = responseJson.get("code").`as`(Int::class.java)
+                    if (statusCode != 0) {
+                        return AudioReference.NO_TRACK
+                    }
+
+                    return when (type) {
+                        "song" -> loadAudio(responseJson.get("data"))
+                        else -> AudioReference.NO_TRACK
+                    }
+                }
             }
         }
         return null
@@ -54,13 +80,14 @@ class BilibiliAudioSourceManager : AudioSourceManager {
             AudioTrackInfo(
                 trackData.get("title").`as`(String::class.java),
                 trackData.get("owner").get("name").`as`(String::class.java),
-                trackData.get("duration").`as`(Long::class.java) * 1000,
+                trackData.get("duration").asLong(0) * 1000,
                 bvid,
                 false,
                 getVideoURL(bvid)
             ),
+            BilibiliAudioTrack.TrackType.VIDEO,
             bvid,
-            trackData.get("cid").`as`(Long::class.java),
+            trackData.get("cid").asLong(0),
             this
         )
     }
@@ -77,18 +104,38 @@ class BilibiliAudioSourceManager : AudioSourceManager {
                 AudioTrackInfo(
                     item.get("part").`as`(String::class.java),
                     author,
-                    item.get("duration").`as`(Long::class.java) * 1000,
+                    item.get("duration").asLong(0) * 1000,
                     bvid,
                     false,
                     getVideoURL(bvid, item.get("page").`as`(Int::class.java))
                 ),
+                BilibiliAudioTrack.TrackType.VIDEO,
                 bvid,
-                item.get("cid").`as`(Long::class.java),
+                item.get("cid").asLong(0),
                 this
             ))
         }
 
         return BasicAudioPlaylist(playlistName, tracks, tracks[page], false)
+    }
+
+    private fun loadAudio(trackData: JsonBrowser): AudioItem {
+        val sid = trackData.get("statistic").get("sid").asLong(0).toString()
+
+        return BilibiliAudioTrack(
+            AudioTrackInfo(
+                trackData.get("title").`as`(String::class.java),
+                trackData.get("uname").`as`(String::class.java),
+                trackData.get("duration").asLong(0) * 1000,
+                "au$sid",
+                false,
+                getAudioURL("au$sid")
+            ),
+            BilibiliAudioTrack.TrackType.AUDIO,
+            sid,
+            null,
+            this
+        )
     }
 
     override fun isTrackEncodable(track: AudioTrack): Boolean {
@@ -97,12 +144,13 @@ class BilibiliAudioSourceManager : AudioSourceManager {
 
     override fun encodeTrack(track: AudioTrack, output: DataOutput) {
         track as BilibiliAudioTrack
-        DataFormatTools.writeNullableText(output, track.bvid)
+        DataFormatTools.writeNullableText(output, track.type.toString())
+        DataFormatTools.writeNullableText(output, track.id)
         DataFormatTools.writeNullableText(output, track.cid.toString())
     }
 
     override fun decodeTrack(trackInfo: AudioTrackInfo, input: DataInput): AudioTrack {
-        return BilibiliAudioTrack(trackInfo, DataFormatTools.readNullableText(input), DataFormatTools.readNullableText(input).toLong(), this)
+        return BilibiliAudioTrack(trackInfo, DataFormatTools.readNullableText(input).toInt() as BilibiliAudioTrack.TrackType, DataFormatTools.readNullableText(input), DataFormatTools.readNullableText(input).toLong(), this)
     }
 
     override fun shutdown() {
@@ -110,10 +158,15 @@ class BilibiliAudioSourceManager : AudioSourceManager {
     }
 
     companion object {
-        private val URL_PATTERN = Regex("^https?:\\/\\/(?:(?:www|m)\\.)?bilibili\\.com\\/(?<type>video)\\/(?<bvid>[A-Za-z0-9]+)\\/?(?:(?:\\?p=(?<page>[\\d]+)(?:&.+)?)?|(?:\\?.*)?)\$").toPattern()
+        const val BASE_URL = "https://api.bilibili.com/"
+        private val URL_PATTERN = Regex("^https?:\\/\\/(?:(?:www|m)\\.)?bilibili\\.com\\/(?<type>video|audio)\\/(?<id>(?:(?<audioType>am|au)?(?<audioId>[0-9]{6,}))|[A-Za-z0-9]+)\\/?(?:(?:\\?p=(?<page>[\\d]+)(?:&.+)?)?|(?:\\?.*)?)\$").toPattern()
 
         private fun getVideoURL(id: String, page: Int? = null): String {
             return "https://www.bilibili.com/video/$id${if (page != null) "?p=$page" else ""}"
+        }
+
+        private fun getAudioURL(id: String): String {
+            return "https://www.bilibili.com/audio/$id"
         }
     }
 }
