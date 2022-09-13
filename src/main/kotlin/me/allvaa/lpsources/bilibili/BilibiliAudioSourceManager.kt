@@ -13,6 +13,7 @@ import java.io.DataOutput
 
 class BilibiliAudioSourceManager : AudioSourceManager {
     val httpInterface: HttpInterface
+    private var playlistPageCount: Int? = null
 
     init {
         val httpInterfacaManager = HttpClientTools.createDefaultThreadLocalManager()
@@ -72,6 +73,10 @@ class BilibiliAudioSourceManager : AudioSourceManager {
             }
         }
         return null
+    }
+
+    fun setPlaylistPageCount(count: Int?) {
+        playlistPageCount = count
     }
 
     private fun loadVideo(trackData: JsonBrowser): AudioTrack {
@@ -150,7 +155,7 @@ class BilibiliAudioSourceManager : AudioSourceManager {
         val tracks = ArrayList<AudioTrack>()
 
         var curPage = responseJson.get("data").get("curPage").`as`(Int::class.java)
-        val pageCount = responseJson.get("data").get("pageCount").`as`(Int::class.java)
+        val pageCount = playlistPageCount ?: responseJson.get("data").get("pageCount").`as`(Int::class.java)
 
         while (curPage <= pageCount) {
             val responsePage = httpInterface.execute(HttpGet("${BASE_URL}audio/music-service-c/web/song/of-menu?sid=$sid&pn=${++curPage}&ps=100"))
