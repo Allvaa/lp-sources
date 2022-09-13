@@ -66,7 +66,7 @@ class BilibiliAudioSourceManager : AudioSourceManager {
                     return when (type) {
                         "song" -> loadAudio(responseJson.get("data"))
                         "menu" -> loadAudioPlaylist(responseJson.get("data"))
-                        else -> null
+                        else -> AudioReference.NO_TRACK
                     }
                 }
             }
