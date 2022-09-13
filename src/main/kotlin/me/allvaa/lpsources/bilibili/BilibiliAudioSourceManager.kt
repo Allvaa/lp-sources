@@ -52,7 +52,7 @@ class BilibiliAudioSourceManager : AudioSourceManager {
                         "am" -> "menu"
                         "au" -> "song"
                         else -> null
-                    }
+                    } ?: return AudioReference.NO_TRACK
                     val sid = matcher.group("audioId")
 
                     val response = httpInterface.execute(HttpGet("${BASE_URL}audio/music-service-c/web/$type/info?sid=$sid"))
