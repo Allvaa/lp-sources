@@ -14,7 +14,7 @@ class AudioSourceManager : AudioPlayerManagerConfiguration {
 
     override fun configure(manager: AudioPlayerManager): AudioPlayerManager {
         manager.registerSourceManager(BilibiliAudioSourceManager())
-        println("Registered Bilibili source manager.")
+        log.info("Registered Bilibili source manager.")
 
         return manager
     }
