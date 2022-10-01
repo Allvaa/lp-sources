@@ -8,8 +8,8 @@ version = "0.1.0"
 
 dependencies {
     implementation(project(":main"))
-    compileOnly("dev.arbjerg.lavalink:plugin-api:0.7.0")
-    runtimeOnly("com.github.freyacodes.lavalink:Lavalink-Server:feature~plugins")
+    compileOnly("dev.arbjerg.lavalink:plugin-api:0.9.0")
+    runtimeOnly("com.github.freyacodes.lavalink:Lavalink-Server:77a3bd8")
 }
 
 application {
