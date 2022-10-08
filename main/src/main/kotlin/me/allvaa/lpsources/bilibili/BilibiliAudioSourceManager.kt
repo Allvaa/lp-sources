@@ -13,7 +13,7 @@ import java.io.DataOutput
 
 class BilibiliAudioSourceManager : AudioSourceManager {
     val httpInterface: HttpInterface
-    private var playlistPageCount: Int? = null
+    private var playlistPageCountConfig: Int = -1
 
     init {
         val httpInterfacaManager = HttpClientTools.createDefaultThreadLocalManager()
@@ -52,8 +52,8 @@ class BilibiliAudioSourceManager : AudioSourceManager {
                     val type = when (matcher.group("audioType")) {
                         "am" -> "menu"
                         "au" -> "song"
-                        else -> null
-                    } ?: return AudioReference.NO_TRACK
+                        else -> return AudioReference.NO_TRACK
+                    }
                     val sid = matcher.group("audioId")
 
                     val response = httpInterface.execute(HttpGet("${BASE_URL}audio/music-service-c/web/$type/info?sid=$sid"))
@@ -75,8 +75,8 @@ class BilibiliAudioSourceManager : AudioSourceManager {
         return null
     }
 
-    fun setPlaylistPageCount(count: Int?) {
-        playlistPageCount = count
+    fun setPlaylistPageCount(count: Int) {
+        playlistPageCountConfig = count
     }
 
     private fun loadVideo(trackData: JsonBrowser): AudioTrack {
@@ -155,7 +155,11 @@ class BilibiliAudioSourceManager : AudioSourceManager {
         val tracks = ArrayList<AudioTrack>()
 
         var curPage = responseJson.get("data").get("curPage").`as`(Int::class.java)
-        val pageCount = playlistPageCount ?: responseJson.get("data").get("pageCount").`as`(Int::class.java)
+        val pageCount = responseJson.get("data").get("pageCount").`as`(Int::class.java).let {
+            if (playlistPageCountConfig == -1) it
+            else if (it <= playlistPageCountConfig) it
+            else playlistPageCountConfig
+        }
 
         while (curPage <= pageCount) {
             val responsePage = httpInterface.execute(HttpGet("${BASE_URL}audio/music-service-c/web/song/of-menu?sid=$sid&pn=${++curPage}&ps=100"))
