@@ -75,8 +75,9 @@ class BilibiliAudioSourceManager : AudioSourceManager {
         return null
     }
 
-    fun setPlaylistPageCount(count: Int) {
+    fun setPlaylistPageCount(count: Int): BilibiliAudioSourceManager {
         playlistPageCountConfig = count
+        return this
     }
 
     private fun loadVideo(trackData: JsonBrowser): AudioTrack {
