@@ -26,4 +26,6 @@ hs_err_pid*
 .idea
 build
 
+lavalink-plugin/application.yml
+
 !gradle/wrapper/gradle-wrapper.jar

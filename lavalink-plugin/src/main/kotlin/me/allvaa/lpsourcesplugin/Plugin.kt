@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
-class AudioSourceManager(private val config: PluginConfig) : AudioPlayerManagerConfiguration {
+class Plugin(private val config: PluginConfig) : AudioPlayerManagerConfiguration {
     init {
         log.info("Starting allvaa-lpsources plugin.")
     }
@@ -16,7 +16,7 @@ class AudioSourceManager(private val config: PluginConfig) : AudioPlayerManagerC
         if (config.activeSources.contains("bilibili")) {
             manager.registerSourceManager(
                 BilibiliAudioSourceManager()
-                    .setPlaylistPageCount(config.bilibili.playlistPageCount)
+                    .setPlaylistPageCount(config.bilibiliConfig.playlistPageCount)
             )
             log.info("Registered Bilibili source manager.")
         }
@@ -25,6 +25,6 @@ class AudioSourceManager(private val config: PluginConfig) : AudioPlayerManagerC
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(AudioSourceManager::class.java)
+        private val log = LoggerFactory.getLogger(Plugin::class.java)
     }
 }

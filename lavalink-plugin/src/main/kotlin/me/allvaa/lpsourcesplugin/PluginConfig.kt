@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component
 @Component
 data class PluginConfig(
     val activeSources: ArrayList<String> = arrayListOf("bilibili"),
-    val bilibili: PluginBilibiliConfig = PluginBilibiliConfig()
+    val bilibiliConfig: PluginBilibiliConfig = PluginBilibiliConfig()
 ) {
     data class PluginBilibiliConfig(
-        val playlistPageCount: Int = -1
+        var playlistPageCount: Int = -1
     )
 }
