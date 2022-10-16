@@ -1,30 +1,25 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "1.4.32"
+    kotlin("jvm") version "1.7.20"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
-group = "me.allvaa"
-version = "0.1.0"
+allprojects {
+    group = "me.allvaa"
 
-repositories {
-    maven("https://jitpack.io")
-    mavenCentral()
-}
-
-dependencies {
-    compileOnly("com.github.walkyst:lavaplayer-fork:1.3.98.4")
-    compileOnly(kotlin("stdlib"))
-}
-
-tasks {
-    shadowJar {
-        archiveBaseName.set("allvaa-lpsc")
-        archiveClassifier.set("")
+    repositories {
+        maven("https://jitpack.io")
+        maven("https://m2.dv8tion.net/releases")
+        mavenCentral()
+        jcenter()
     }
 }
 
-tasks.withType<KotlinCompile>() {
-    kotlinOptions.jvmTarget = "1.8"
+subprojects {
+    apply(plugin = "java")
+    apply(plugin = "kotlin")
+    apply(plugin = "com.github.johnrengelman.shadow")
+
+    dependencies {
+        compileOnly(kotlin("stdlib"))
+    }
 }
